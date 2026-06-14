@@ -1,0 +1,22 @@
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment secret files
+.env
+.env.*
+
+# Local databases and runtimes
+*.db
+chroma_db/
+.history/
+
+# IDE files
+.vscode/
+.idea/

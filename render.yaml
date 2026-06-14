@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: rag-mcq-assessment
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set to your Neon PostgreSQL connection string in the dashboard
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: HF_API_KEY
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: CHROMA_PERSIST_DIR
+        value: /app/chroma_db
+      - key: IMAGE_GEN_ENABLED
+        value: "true"

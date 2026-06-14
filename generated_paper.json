@@ -1,0 +1,28 @@
+[
+  {
+    "question": "What is the area of the parallelogram in the given figure?",
+    "options": [
+      "1320 cm²",
+      "1300 cm²",
+      "1400 cm²",
+      "1280 cm²"
+    ],
+    "answer": "A",
+    "explanation": "The area of a parallelogram is calculated as base multiplied by height. In the given figure, the base is 44 cm and the height is 30 cm. Therefore, the area is 44 * 30 = 1320 cm².",
+    "topic_id": "g11_t1_08_area_of_plane_figures_between_parallel_lines",
+    "difficulty_level": "Remember"
+  },
+  {
+    "question": "A compound figure consists of a parallelogram and a sector. The parallelogram has a base of 20 cm and a height of 15 cm. The sector has a radius of 10 cm and a central angle of 90 degrees. (i) Find the area of the parallelogram.",
+    "options": [
+      "300 cm²",
+      "250 cm²",
+      "400 cm²",
+      "150 cm²"
+    ],
+    "answer": "A",
+    "explanation": "The area of a parallelogram is calculated as base multiplied by height. Here, base = 20 cm and height = 15 cm. Therefore, the area is 20 * 15 = 300 cm². The other options are incorrect because they result from miscalculations, such as using diameter instead of radius or mixing up base and height.",
+    "topic_id": "g11_t1_08_area_of_plane_figures_between_parallel_lines",
+    "difficulty_level": "Apply"
+  }
+]
