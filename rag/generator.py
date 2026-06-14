@@ -13,6 +13,26 @@ from rag.hf_inference import hf_text_generation
 from rag.prompts import get_mcq_prompt
 
 
+# ── Abacus AI cost tracking (per-quiz-generation budget) ────────────────────
+_abacus_cost_lock = threading.Lock()
+_abacus_session_cost = 0.0
+
+# Approximate token pricing for cost estimation ($/1M tokens).
+_ABACUS_INPUT_PRICE = float(config.os.getenv("ABACUS_INPUT_PRICE_PER_M", "0.50"))
+_ABACUS_OUTPUT_PRICE = float(config.os.getenv("ABACUS_OUTPUT_PRICE_PER_M", "3.00"))
+
+
+def reset_abacus_cost():
+    global _abacus_session_cost
+    with _abacus_cost_lock:
+        _abacus_session_cost = 0.0
+
+
+def get_abacus_cost() -> float:
+    with _abacus_cost_lock:
+        return _abacus_session_cost
+
+
 def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", (value or "").lower())).strip()
 
@@ -135,12 +155,55 @@ def _invoke_huggingface(prompt: str) -> str:
     raise RuntimeError("All HF LLM models failed. " + " | ".join(errors))
 
 
+def _invoke_abacus(prompt: str) -> str:
+    global _abacus_session_cost
+
+    with _abacus_cost_lock:
+        if _abacus_session_cost >= config.ABACUS_COST_LIMIT:
+            raise RuntimeError(
+                f"Abacus AI cost limit reached (${_abacus_session_cost:.4f} / "
+                f"${config.ABACUS_COST_LIMIT:.2f}). Stopping to protect your budget."
+            )
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url=config.ABACUS_BASE_URL,
+        api_key=config.ABACUS_API_KEY,
+    )
+    response = client.chat.completions.create(
+        model=config.ABACUS_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=2000,
+    )
+    text = response.choices[0].message.content or ""
+
+    usage = response.usage
+    if usage:
+        input_cost = (usage.prompt_tokens / 1_000_000) * _ABACUS_INPUT_PRICE
+        output_cost = (usage.completion_tokens / 1_000_000) * _ABACUS_OUTPUT_PRICE
+        call_cost = input_cost + output_cost
+        with _abacus_cost_lock:
+            _abacus_session_cost += call_cost
+            print(
+                f"Abacus AI: {usage.prompt_tokens} in / {usage.completion_tokens} out "
+                f"| call=${call_cost:.4f} | session=${_abacus_session_cost:.4f}"
+            )
+
+    return text
+
+
 def _invoke_llm(prompt: str) -> str:
     provider = config.LLM_PROVIDER
+    if provider == "abacus":
+        return _invoke_abacus(prompt)
     if provider == "huggingface":
         return _invoke_huggingface(prompt)
     if provider == "google":
         return _invoke_google(prompt)
+    if config.ABACUS_API_KEY:
+        return _invoke_abacus(prompt)
     if config.HF_API_KEY:
         return _invoke_huggingface(prompt)
     return _invoke_google(prompt)
@@ -357,6 +420,7 @@ def _generate_mcqs_block(args: tuple) -> List[Dict]:
 
 def generate_paper(syllabus: dict, retrieved_content: dict) -> List[Dict]:
     """Generate a full MCQ paper based on the syllabus configuration."""
+    reset_abacus_cost()
     topics_lookup = {}
     levels_lookup = {}
     try:

@@ -119,6 +119,12 @@ HF_EMBEDDING_FALLBACKS = [
 HF_API_URL_BASE = os.getenv("HF_API_URL_BASE", "https://api-inference.huggingface.co/models").strip().rstrip("/")
 HF_TIMEOUT_SECONDS = int(os.getenv("HF_TIMEOUT_SECONDS", "90"))
 
+# ── Abacus AI (OpenAI-compatible RouteLLM API) ───────────────────────────────
+ABACUS_API_KEY = os.getenv("ABACUS_API_KEY", "").strip()
+ABACUS_BASE_URL = os.getenv("ABACUS_BASE_URL", "https://routellm.abacus.ai/v1").strip().rstrip("/")
+ABACUS_MODEL = os.getenv("ABACUS_MODEL", "gemini-3.5-flash").strip()
+ABACUS_COST_LIMIT = float(os.getenv("ABACUS_COST_LIMIT", "1.0"))
+
 # Parallel LLM calls when building a full paper (topics × difficulty levels).
 GENERATION_MAX_WORKERS = max(1, int(os.getenv("GENERATION_MAX_WORKERS", "4")))
 
