@@ -714,6 +714,13 @@ class ConceptMapper:
         return deduped
 
 
+@app.errorhandler(500)
+def handle_500(e):
+    if request.path.startswith("/api/"):
+        return jsonify({"status": "error", "message": f"Internal server error: {e}"}), 500
+    return render_template("index.html"), 500
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
