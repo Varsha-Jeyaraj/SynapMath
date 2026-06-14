@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
+ENV PORT=7860
 
 # Set working directory
 WORKDIR /app
@@ -26,20 +26,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# Build ChromaDB vectors at image build time so they persist across restarts.
-# HF_API_KEY must be passed as a Docker build arg (set in Render dashboard).
-ARG HF_API_KEY
-ARG EMBEDDING_PROVIDER=huggingface
-ARG HF_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-RUN if [ -n "$HF_API_KEY" ]; then \
-      HF_API_KEY=$HF_API_KEY \
-      EMBEDDING_PROVIDER=$EMBEDDING_PROVIDER \
-      HF_EMBEDDING_MODEL=$HF_EMBEDDING_MODEL \
-      python -c "from rag.ingest import ingest_all; ingest_all(force=True)"; \
-    else \
-      echo "WARN: HF_API_KEY not set at build time, skipping pre-build ingestion"; \
-    fi
+# HF Spaces injects secrets as env vars at runtime, so ChromaDB ingestion
+# runs on first startup (see app.py). The vectors are cached in the container
+# filesystem and persist until the Space is rebuilt.
 
-EXPOSE 5000
+EXPOSE 7860
 
 CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 180 "app:app"

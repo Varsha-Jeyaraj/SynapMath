@@ -142,6 +142,15 @@ with app.app_context():
     db.create_all()
     _ensure_attempt_question_image_url_column()
 
+    _chroma_dir = Path(config.CHROMA_PERSIST_DIR)
+    if not (_chroma_dir / "chroma.sqlite3").exists():
+        try:
+            from rag.ingest import ingest_all
+            print("First startup: ingesting documents into ChromaDB...")
+            ingest_all(force=True)
+            print("Ingestion complete.")
+        except Exception as exc:
+            print(f"Auto-ingest skipped: {exc}")
 
 
 PAPER_FILE = config.PROJECT_ROOT / "generated_paper.json"
