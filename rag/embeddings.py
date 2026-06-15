@@ -38,6 +38,37 @@ class HuggingFaceInferenceEmbeddings:
         return self._embed_one(text)
 
 
+class FallbackEmbeddings:
+    """Use primary embeddings, then fallback embeddings on failure."""
+
+    def __init__(self, primary: Any, fallback: Any):
+        self.primary = primary
+        self.fallback = fallback
+        self._using_fallback = False
+
+    def _embed_with_primary(self, text: str, is_query: bool = False):
+        if self._using_fallback:
+            if is_query:
+                return self.fallback.embed_query(text)
+            return self.fallback.embed_documents([text])[0]
+        try:
+            if is_query:
+                return self.primary.embed_query(text)
+            return self.primary.embed_documents([text])[0]
+        except Exception as exc:
+            print(f"Primary embeddings failed, switching to fallback: {exc}")
+            self._using_fallback = True
+            if is_query:
+                return self.fallback.embed_query(text)
+            return self.fallback.embed_documents([text])[0]
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [self._embed_with_primary(t, is_query=False) for t in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._embed_with_primary(text, is_query=True)
+
+
 def _google_embedding_candidates() -> list[str]:
     configured = (config.EMBEDDING_MODEL or "").strip() or "gemini-embedding-001"
     candidates = [configured]
@@ -54,8 +85,16 @@ def build_embeddings() -> Any:
     if provider == "huggingface":
         models = [config.HF_EMBEDDING_MODEL, *config.HF_EMBEDDING_FALLBACKS]
         models = list(dict.fromkeys(m for m in models if m))
-        return HuggingFaceInferenceEmbeddings(models)
+        primary = HuggingFaceInferenceEmbeddings(models)
+        if config.GOOGLE_API_KEY:
+            google = _build_google_embeddings()
+            return FallbackEmbeddings(primary=primary, fallback=google)
+        return primary
 
+    return _build_google_embeddings()
+
+
+def _build_google_embeddings() -> Any:
     last_error = None
     for model_name in _google_embedding_candidates():
         try:
