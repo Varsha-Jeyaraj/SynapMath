@@ -158,7 +158,13 @@ def build_embeddings() -> Any:
             return FallbackEmbeddings(primary=primary, fallback=google)
         return primary
 
-    return _build_google_embeddings()
+    google_primary = _build_google_embeddings()
+    if config.HF_API_KEY:
+        hf_models = [config.HF_EMBEDDING_MODEL, *config.HF_EMBEDDING_FALLBACKS]
+        hf_models = list(dict.fromkeys(m for m in hf_models if m))
+        hf_fallback = HuggingFaceInferenceEmbeddings(hf_models)
+        return FallbackEmbeddings(primary=google_primary, fallback=hf_fallback)
+    return google_primary
 
 
 def _build_google_embeddings() -> Any:
