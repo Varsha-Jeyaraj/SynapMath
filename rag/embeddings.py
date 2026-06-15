@@ -70,13 +70,20 @@ class FallbackEmbeddings:
 
 
 def _google_embedding_candidates() -> list[str]:
-    configured = (config.EMBEDDING_MODEL or "").strip() or "gemini-embedding-001"
+    configured = (config.EMBEDDING_MODEL or "").strip() or "models/text-embedding-004"
     candidates = [configured]
     if configured.startswith("models/"):
         candidates.append(configured[len("models/") :])
     else:
         candidates.append(f"models/{configured}")
-    candidates.extend(["gemini-embedding-001", "models/gemini-embedding-001"])
+    candidates.extend(
+        [
+            "models/text-embedding-004",
+            "text-embedding-004",
+            "models/gemini-embedding-001",
+            "gemini-embedding-001",
+        ]
+    )
     return list(dict.fromkeys(candidates))
 
 
@@ -105,7 +112,14 @@ def _build_google_embeddings() -> Any:
         except Exception as exc:
             last_error = exc
             msg = str(exc).lower()
-            if "not_found" in msg or "not found" in msg:
+            if (
+                "not_found" in msg
+                or "not found" in msg
+                or "unexpected model name format" in msg
+                or "invalid argument" in msg
+                or "400" in msg
+            ):
+                print(f"Google embedding model rejected ({model_name}), trying next candidate...")
                 continue
             raise
 

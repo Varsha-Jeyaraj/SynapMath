@@ -165,7 +165,8 @@ IMAGE_GEN_FALLBACK_REQUIRE_KEYWORDS = os.getenv(
 ).strip().lower() in ("1", "true", "yes", "on")
 
 # ── Vector Store Settings ────────────────────────────────────────────────────
-CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(PROJECT_ROOT / "chroma_db"))
+_default_chroma_dir = "/tmp/chroma_db" if os.getenv("SPACE_ID") else str(PROJECT_ROOT / "chroma_db")
+CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", _default_chroma_dir)
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "mcq_content")
 
 # ── Data File Paths ──────────────────────────────────────────────────────────

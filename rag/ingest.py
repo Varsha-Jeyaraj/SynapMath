@@ -207,7 +207,22 @@ def ingest_all(force: bool = False) -> dict:
     if persist_dir.exists():
         # Rebuild from scratch to avoid duplicate vectors across re-index runs.
         shutil.rmtree(persist_dir)
-    create_vector_store(chunks)
+    try:
+        create_vector_store(chunks)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "readonly database" in msg or "read-only database" in msg:
+            fallback_dir = Path("/tmp/chroma_db")
+            print(
+                f"Chroma persist dir '{config.CHROMA_PERSIST_DIR}' is read-only. "
+                f"Falling back to '{fallback_dir}'."
+            )
+            if fallback_dir.exists():
+                shutil.rmtree(fallback_dir)
+            config.CHROMA_PERSIST_DIR = str(fallback_dir)
+            create_vector_store(chunks)
+        else:
+            raise
     _write_manifest_hash(new_manifest_hash)
     print("Ingestion complete.")
     return {"status": "rebuilt", "message": "Ingestion complete."}
